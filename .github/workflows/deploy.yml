@@ -30,6 +30,9 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+          VITE_TIKTOK_CLIENT_KEY: ${{ vars.VITE_TIKTOK_CLIENT_KEY }}
+          VITE_TIKTOK_CLIENT_SECRET: ${{ secrets.VITE_TIKTOK_CLIENT_SECRET }}
         run: npm run build
 
       - name: Upload artifact
