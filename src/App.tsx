@@ -4,19 +4,51 @@
  */
 
 import React, { useState } from 'react';
-import { Shield, Trash2, Mail, ExternalLink, Facebook, Info, CheckCircle2 } from 'lucide-react';
+import { Shield, Trash2, Mail, ExternalLink, Facebook, Info, CheckCircle2, Music2 } from 'lucide-react';
 import { motion } from 'motion/react';
+
+type Permission = {
+  name: string;
+  desc: string;
+  includedIn?: string;
+};
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'privacy' | 'deletion'>('home');
 
-  const permissions = [
+  const metaPermissions: Permission[] = [
     { name: 'pages_read_engagement', desc: 'Allows the app to read content and engagement data from your Facebook Pages.' },
     { name: 'public_profile', desc: 'Provides access to your basic profile information like name and profile picture.' },
     { name: 'pages_manage_posts', desc: 'Enables the app to create and manage posts on your Facebook Pages.' },
     { name: 'pages_manage_engagement', desc: 'Allows the app to manage comments and engagement on your Page posts.' },
     { name: 'pages_show_list', desc: 'Lets the app see the list of Pages you manage.' },
     { name: 'business_management', desc: 'Allows the app to manage your business assets and settings.' },
+  ];
+
+  const tikTokPermissions: Permission[] = [
+    {
+      name: 'user.info.basic',
+      desc: "Read a user's profile info (open id, avatar, display name ...).",
+      includedIn: 'Login Kit',
+    },
+    {
+      name: 'video.publish',
+      desc: "Directly post content to a user's TikTok profile.",
+      includedIn: 'Content Posting API',
+    },
+    {
+      name: 'video.upload',
+      desc: "Share content to a creator's account as a draft to further edit and post in TikTok.",
+      includedIn: 'Content Posting API',
+    },
+    {
+      name: 'user.info.profile',
+      desc: 'Read access to profile_web_link, profile_deep_link, bio_description, is_verified.',
+    },
+    {
+      name: 'user.info.stats',
+      desc: "Read access to a user's statistical data, such as likes count, follower count, following count, and video count.",
+    },
   ];
 
   const NavItem = ({ id, label, icon: Icon }: { id: typeof activeTab; label: string; icon: any }) => (
@@ -61,33 +93,71 @@ export default function App() {
           >
             <section className="text-center space-y-4">
               <h2 className="text-4xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-                Manage your Facebook presence with ease.
+                Manage all your social media content in one place.
               </h2>
               <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-                Fancambo App (fancambo-app.baxex.com) helps businesses and creators streamline their social media management, 
-                content scheduling, and audience engagement.
+                Fancambo App (fancambo-app.baxex.com) helps businesses and creators streamline Facebook and TikTok content
+                management, scheduling, publishing, and audience engagement.
               </p>
             </section>
 
             <section className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
               <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
-                <Facebook className="text-blue-600" />
-                Meta App Review Permissions
+                <Info className="text-blue-600" />
+                Platform Permissions
               </h3>
               <p className="text-slate-600 mb-8">
-                To provide our core services, Fancambo App requests the following permissions. 
-                We use this data strictly to help you manage your Pages and Business assets.
+                To provide our core services, Fancambo App requests the following permissions from connected Meta and TikTok
+                accounts. We use this data strictly to help you manage publishing, account insights, and business assets.
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {permissions.map((p) => (
-                  <div key={p.name} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex gap-3">
-                    <CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={20} />
-                    <div>
-                      <code className="text-sm font-mono font-bold text-blue-700">{p.name}</code>
-                      <p className="text-sm text-slate-600 mt-1">{p.desc}</p>
-                    </div>
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="rounded-3xl border border-slate-200 p-6 bg-slate-50/70">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Facebook className="text-blue-600" />
+                    <h4 className="text-xl font-bold">Meta App Review Permissions</h4>
                   </div>
-                ))}
+                  <p className="text-sm text-slate-600 mb-6">
+                    These permissions support Facebook Page access, publishing, engagement management, and business asset setup.
+                  </p>
+                  <div className="space-y-4">
+                    {metaPermissions.map((p) => (
+                      <div key={p.name} className="p-4 rounded-2xl bg-white border border-slate-100 flex gap-3">
+                        <CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={20} />
+                        <div>
+                          <code className="text-sm font-mono font-bold text-blue-700">{p.name}</code>
+                          <p className="text-sm text-slate-600 mt-1">{p.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 p-6 bg-slate-50/70">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Music2 className="text-slate-900" />
+                    <h4 className="text-xl font-bold">TikTok Permissions</h4>
+                  </div>
+                  <p className="text-sm text-slate-600 mb-6">
+                    These permissions let creators connect TikTok, publish content, save drafts, and view profile and account
+                    performance details.
+                  </p>
+                  <div className="space-y-4">
+                    {tikTokPermissions.map((p) => (
+                      <div key={p.name} className="p-4 rounded-2xl bg-white border border-slate-100 flex gap-3">
+                        <CheckCircle2 className="text-emerald-500 shrink-0 mt-1" size={20} />
+                        <div>
+                          <code className="text-sm font-mono font-bold text-slate-900">{p.name}</code>
+                          <p className="text-sm text-slate-600 mt-1">{p.desc}</p>
+                          {p.includedIn && (
+                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500 mt-2">
+                              Included in {p.includedIn}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </section>
           </motion.div>
@@ -110,8 +180,9 @@ export default function App() {
               <section>
                 <h3 className="text-xl font-bold text-slate-900 mb-2">1. Information We Collect</h3>
                 <p>
-                  When you use Fancambo App via Facebook Login, we collect information necessary to provide our services, 
-                  including your public profile (name, profile picture) and data related to the Facebook Pages you manage.
+                  When you connect Fancambo App with Facebook or TikTok, we collect information necessary to provide our
+                  services, including your public profile details, data related to the Facebook Pages you manage, and TikTok
+                  profile and account statistics you authorize us to access.
                 </p>
               </section>
 
@@ -121,10 +192,10 @@ export default function App() {
                   We use the permissions granted to:
                 </p>
                 <ul className="list-disc pl-6 space-y-2 mt-2">
-                  <li>Display a list of Facebook Pages you manage.</li>
-                  <li>Schedule and publish posts to your Pages.</li>
-                  <li>Analyze engagement metrics (likes, comments, shares) to provide insights.</li>
-                  <li>Moderate and respond to comments on your behalf.</li>
+                  <li>Display a list of Facebook Pages and connected TikTok profile details.</li>
+                  <li>Schedule and publish posts to your Facebook Pages and TikTok profile.</li>
+                  <li>Save TikTok uploads as drafts for further editing and posting.</li>
+                  <li>Analyze engagement metrics and account statistics to provide insights.</li>
                 </ul>
               </section>
 
@@ -132,7 +203,7 @@ export default function App() {
                 <h3 className="text-xl font-bold text-slate-900 mb-2">3. Data Security</h3>
                 <p>
                   We implement industry-standard security measures to protect your data. We do not sell your personal 
-                  information to third parties. Access to your Facebook data is managed via secure OAuth tokens.
+                  information to third parties. Access to your Facebook and TikTok data is managed via secure OAuth tokens.
                 </p>
               </section>
 
