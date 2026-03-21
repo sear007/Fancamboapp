@@ -1,3 +1,5 @@
+import {getWorkerBaseUrl} from './cloudflareWorker';
+
 export const TIKTOK_AUTH_FLOW_STORAGE_KEY = 'fancambo.tiktok.auth_flow';
 export const TIKTOK_SESSION_STORAGE_KEY = 'fancambo.tiktok.session';
 export const TIKTOK_SCOPES = ['user.info.basic', 'video.upload'] as const;
@@ -25,26 +27,26 @@ export type TikTokSession = {
 
 type TikTokAuthFlow = {
   clientKey: string;
-  clientSecret: string;
   homeUrl: string;
   redirectUri: string;
   scope: string;
   startedAt: number;
   state: string;
+  workerApiBaseUrl: string;
 };
 
 export function getTikTokConfig() {
   const clientKey = import.meta.env.VITE_TIKTOK_CLIENT_KEY?.trim() || '';
-  const clientSecret = import.meta.env.VITE_TIKTOK_CLIENT_SECRET?.trim() || '';
+  const workerApiBaseUrl = getWorkerBaseUrl();
 
   return {
     clientKey,
-    clientSecret,
-    isConfigured: Boolean(clientKey && clientSecret),
+    isConfigured: Boolean(clientKey && workerApiBaseUrl),
     missingValues: [
       !clientKey ? 'VITE_TIKTOK_CLIENT_KEY' : null,
-      !clientSecret ? 'VITE_TIKTOK_CLIENT_SECRET' : null,
+      !workerApiBaseUrl ? 'VITE_CLOUDFLARE_WORKER_URL' : null,
     ].filter(Boolean) as string[],
+    workerApiBaseUrl,
   };
 }
 
@@ -57,12 +59,12 @@ export function createTikTokAuthFlow(): TikTokAuthFlow {
 
   return {
     clientKey: config.clientKey,
-    clientSecret: config.clientSecret,
     homeUrl: getHomeUrl(),
     redirectUri: getTikTokCallbackUrl(),
     scope: TIKTOK_SCOPE_PARAM,
     startedAt: Date.now(),
     state: createRandomState(),
+    workerApiBaseUrl: config.workerApiBaseUrl,
   };
 }
 

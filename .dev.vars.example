@@ -1,0 +1,3 @@
+TIKTOK_CLIENT_KEY=your_tiktok_client_key
+TIKTOK_CLIENT_SECRET=your_tiktok_client_secret
+ALLOWED_ORIGIN=http://localhost:3000,https://sear007.github.io

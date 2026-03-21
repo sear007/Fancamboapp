@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "fancambo-worker",
+  "main": "cloudflare/worker.js",
+  "compatibility_date": "2026-03-21",
+  "preview_urls": false,
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true
+    }
+  },
+  "vars": {
+    "ALLOWED_ORIGIN": "https://sear007.github.io,http://localhost:3000,http://127.0.0.1:3000",
+    "APP_BASE_URL": "https://sear007.github.io/Fancamboapp/"
+  },
+  "r2_buckets": [
+    {
+      "binding": "VIDEOS_BUCKET",
+      "bucket_name": "fancambo-videos"
+    }
+  ]
+}

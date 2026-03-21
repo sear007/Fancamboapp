@@ -129,6 +129,11 @@
                 return;
             }
 
+            if (!flow.workerApiBaseUrl) {
+                renderError('Cloudflare Worker URL is missing.', 'Start the TikTok login flow again after refreshing the latest frontend configuration.');
+                return;
+            }
+
             if (!code) {
                 renderError('TikTok did not return an authorization code.', 'Start the TikTok login flow again and approve the requested permissions.');
                 return;
@@ -140,65 +145,20 @@
             }
 
             try {
-                const payload = new URLSearchParams({
-                    client_key: flow.clientKey,
-                    client_secret: flow.clientSecret,
+                const response = await axios.post(buildWorkerApiUrl(flow.workerApiBaseUrl, '/api/tiktok/oauth/exchange'), {
                     code,
-                    grant_type: 'authorization_code',
-                    redirect_uri: flow.redirectUri,
-                });
-
-                const response = await axios.post('https://open.tiktokapis.com/v2/oauth/token/', payload, {
+                    redirectUri: flow.redirectUri,
+                }, {
                     headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Content-Type': 'application/json',
                     },
                 });
 
-                const tokenPayload = response && response.data ? response.data : null;
-                const token = tokenPayload && tokenPayload.data ? tokenPayload.data : tokenPayload;
+                const session = response && response.data ? response.data.session || null : null;
 
-                if (!token || !token.access_token) {
-                    throw new Error(token && (token.error_description || token.error) ? token.error_description || token.error : 'TikTok did not return an access token.');
+                if (!session || !session.accessToken) {
+                    throw new Error(response && response.data && response.data.message ? response.data.message : 'Cloudflare Worker did not return a valid TikTok session.');
                 }
-
-                const now = Date.now();
-                let profile = null;
-
-                try {
-                    const profileResponse = await axios.get('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url', {
-                        headers: {
-                            Authorization: `Bearer ${token.access_token}`,
-                        },
-                    });
-
-                    profile = profileResponse && profileResponse.data && profileResponse.data.data
-                        ? profileResponse.data.data.user || null
-                        : null;
-                } catch (profileError) {
-                    profile = null;
-                }
-
-                const session = {
-                    accessToken: token.access_token,
-                    authCode: code,
-                    connectedAt: now,
-                    expiresAt: now + Number(token.expires_in || 0) * 1000,
-                    openId: token.open_id || '',
-                    profile: profile
-                        ? {
-                            avatarUrl: profile.avatar_url || null,
-                            displayName: profile.display_name || null,
-                            openId: profile.open_id || token.open_id || '',
-                        }
-                        : null,
-                    refreshExpiresAt: token.refresh_expires_in ? now + Number(token.refresh_expires_in) * 1000 : null,
-                    refreshToken: token.refresh_token || null,
-                    scope: String(token.scope || '')
-                        .split(',')
-                        .map((item) => item.trim())
-                        .filter(Boolean),
-                    tokenType: token.token_type || null,
-                };
 
                 localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
                 localStorage.removeItem(AUTH_FLOW_STORAGE_KEY);
@@ -275,6 +235,10 @@
             if (window.axios && window.axios.isAxiosError && window.axios.isAxiosError(error)) {
                 const responseData = error.response && error.response.data ? error.response.data : null;
 
+                if (responseData && responseData.message) {
+                    return responseData.message;
+                }
+
                 if (responseData && (responseData.error_description || responseData.description)) {
                     return responseData.error_description || responseData.description;
                 }
@@ -289,6 +253,12 @@
             }
 
             return 'Unknown TikTok callback error.';
+        }
+
+        function buildWorkerApiUrl(baseUrl, path) {
+            const normalizedBaseUrl = String(baseUrl || '').replace(/\/+$/, '');
+            const normalizedPath = String(path || '').replace(/^\/+/, '');
+            return new URL(normalizedPath, normalizedBaseUrl + '/').toString();
         }
 
         function readJson(storageKey) {

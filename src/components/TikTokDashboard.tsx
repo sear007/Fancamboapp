@@ -17,7 +17,7 @@ import {
   initializeTikTokUpload,
   pollTikTokUploadStatus,
   type TikTokUploadStatus,
-  uploadVideoChunks,
+  uploadVideoToStorage,
 } from '../lib/tiktokUpload';
 
 type TikTokDashboardProps = {
@@ -79,22 +79,19 @@ export function TikTokDashboard({onLogout, session}: TikTokDashboardProps) {
       setUploadState({
         error: null,
         isUploading: true,
-        message: 'Initializing TikTok upload...',
+        message: 'Creating a secure Cloudflare upload session...',
         progress: 0,
         publishId: null,
         status: null,
         uploadedBytes: 0,
       });
 
-      const uploadInit = await initializeTikTokUpload(session.accessToken, chunkPlan);
-
       setUploadState((currentState) => ({
         ...currentState,
-        message: `Uploading ${chunkPlan.totalChunkCount} chunk${chunkPlan.totalChunkCount > 1 ? 's' : ''} to TikTok...`,
-        publishId: uploadInit.publishId,
+        message: `Uploading ${chunkPlan.totalChunkCount} chunk${chunkPlan.totalChunkCount > 1 ? 's' : ''} to Cloudflare storage...`,
       }));
 
-      await uploadVideoChunks(uploadInit.uploadUrl, selectedFile, chunkPlan, (progress, uploadedBytes) => {
+      const uploadedAsset = await uploadVideoToStorage(selectedFile, chunkPlan, (progress, uploadedBytes) => {
         setUploadState((currentState) => ({
           ...currentState,
           progress,
@@ -104,9 +101,17 @@ export function TikTokDashboard({onLogout, session}: TikTokDashboardProps) {
 
       setUploadState((currentState) => ({
         ...currentState,
-        message: 'Upload complete. Waiting for TikTok to process the draft...',
+        message: 'Cloudflare upload complete. Requesting TikTok draft import...',
         progress: 100,
         uploadedBytes: selectedFile.size,
+      }));
+
+      const uploadInit = await initializeTikTokUpload(session.accessToken, uploadedAsset.mediaUrl);
+
+      setUploadState((currentState) => ({
+        ...currentState,
+        message: 'TikTok accepted the draft import request. Waiting for TikTok to process the video...',
+        publishId: uploadInit.publishId,
       }));
 
       const latestStatus = await pollTikTokUploadStatus(session.accessToken, uploadInit.publishId, (status) => {
@@ -281,7 +286,7 @@ export function TikTokDashboard({onLogout, session}: TikTokDashboardProps) {
                           <p className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-400">Selected File</p>
                           <h3 className="mt-2 text-lg font-bold text-white">{selectedFile.name}</h3>
                           <p className="mt-1 text-sm text-slate-400">
-                            {formatBytes(selectedFile.size)} {selectedFile.type ? `• ${selectedFile.type}` : ''}
+                            {formatBytes(selectedFile.size)} {selectedFile.type ? `| ${selectedFile.type}` : ''}
                           </p>
                         </div>
                         <Video className="text-sky-300" size={22} />
@@ -358,8 +363,8 @@ export function TikTokDashboard({onLogout, session}: TikTokDashboardProps) {
                     <h2 className="text-xl font-bold text-white">What Happens Next</h2>
                   </div>
                   <ul className="mt-5 space-y-3 text-sm leading-6 text-slate-300">
-                    <li>1. Fancambo creates a TikTok draft upload session for the selected video.</li>
-                    <li>2. The file uploads directly to TikTok in one or more chunks.</li>
+                    <li>1. Fancambo uploads the selected file to your Cloudflare-backed storage in secure parts.</li>
+                    <li>2. Fancambo asks TikTok to pull that file into a draft workflow using the saved account session.</li>
                     <li>3. TikTok processes the upload and sends it to the creator inbox for final editing.</li>
                     <li>4. The creator finishes the edit and posts from TikTok.</li>
                   </ul>
