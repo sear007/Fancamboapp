@@ -13,6 +13,16 @@ export default {
         });
       }
 
+      const verificationToken = matchTikTokVerificationPath(url.pathname);
+
+      if (request.method === 'GET' && verificationToken) {
+        return new Response(`tiktok-developers-site-verification=${verificationToken}`, {
+          headers: {
+            'Content-Type': 'text/plain; charset=UTF-8',
+          },
+        });
+      }
+
       if (url.pathname.startsWith('/api/')) {
         validateOrigin(request, env);
       }
@@ -510,4 +520,9 @@ function assertBucketBinding(env) {
   if (!env.VIDEOS_BUCKET) {
     throw new Error('Missing Worker R2 binding: VIDEOS_BUCKET');
   }
+}
+
+function matchTikTokVerificationPath(pathname) {
+  const match = pathname.match(/^\/tiktok([A-Za-z0-9]+)\.txt$/);
+  return match ? match[1] : null;
 }

@@ -8,7 +8,9 @@ import {
   RefreshCcw,
   Upload,
   Video,
+  type LucideIcon,
 } from 'lucide-react';
+import {AnimatePresence, motion} from 'motion/react';
 
 import type {TikTokSession} from '../lib/tiktokAuth';
 import {
@@ -35,6 +37,27 @@ type UploadState = {
   uploadedBytes: number;
 };
 
+type StatusCardTheme = {
+  Icon: LucideIcon;
+  badge: string;
+  badgeClassName: string;
+  description: string;
+  glowClassName: string;
+  iconClassName: string;
+  iconSurfaceClassName: string;
+  isLive: boolean;
+  progressClassName: string;
+  progressLabel: string;
+  title: string;
+  visualProgress: number;
+};
+
+type StatusMilestone = {
+  detail: string;
+  label: string;
+  state: 'active' | 'done' | 'error' | 'pending';
+};
+
 const initialUploadState: UploadState = {
   error: null,
   isUploading: false,
@@ -53,6 +76,9 @@ export function TikTokDashboard({onLogout, session}: TikTokDashboardProps) {
 
   const displayName = session.profile?.displayName || 'TikTok Creator';
   const avatarUrl = session.profile?.avatarUrl || null;
+  const statusTheme = getStatusCardTheme(uploadState);
+  const statusMilestones = getStatusMilestones(uploadState);
+  const statusRows = getStatusRows(uploadState);
 
   const handlePickFile = () => {
     fileInputRef.current?.click();
@@ -326,35 +352,117 @@ export function TikTokDashboard({onLogout, session}: TikTokDashboardProps) {
 
               <div className="space-y-6">
                 <section className="rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-2xl shadow-slate-950/30 backdrop-blur-xl">
-                  <div className="flex items-center gap-3">
-                    <Clock3 className="text-sky-300" size={20} />
-                    <h2 className="text-xl font-bold text-white">TikTok Status</h2>
-                  </div>
+                  <div className="relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-slate-950/60 p-5">
+                    <motion.div
+                      aria-hidden="true"
+                      className={`pointer-events-none absolute inset-0 ${statusTheme.glowClassName}`}
+                      animate={statusTheme.isLive ? {opacity: [0.25, 0.55, 0.25], scale: [1, 1.04, 1]} : {opacity: 0.32, scale: 1}}
+                      transition={{duration: 3.6, ease: 'easeInOut', repeat: statusTheme.isLive ? Infinity : 0}}
+                    />
 
-                  {uploadState.status ? (
-                    <div className="mt-5 space-y-4 text-sm text-slate-300">
-                      <StatusRow label="Status" value={uploadState.status.status || 'Processing'} />
-                      <StatusRow label="Uploaded Bytes" value={String(uploadState.status.uploaded_bytes || uploadState.uploadedBytes)} />
-                      {uploadState.status.publicaly_available_post_id && (
-                        <StatusRow label="Public Post ID" value={uploadState.status.publicaly_available_post_id} />
+                    <div className="relative">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-center gap-3">
+                          <motion.div
+                            className={`flex h-12 w-12 items-center justify-center rounded-2xl ${statusTheme.iconSurfaceClassName}`}
+                            animate={statusTheme.isLive ? {scale: [1, 1.05, 1]} : {scale: 1}}
+                            transition={{duration: 2.4, ease: 'easeInOut', repeat: statusTheme.isLive ? Infinity : 0}}
+                          >
+                            <statusTheme.Icon className={statusTheme.iconClassName} size={22} />
+                          </motion.div>
+                          <div>
+                            <p className="text-sm font-semibold uppercase tracking-[0.22em] text-sky-200/70">TikTok Status</p>
+                            <p className="mt-1 text-xs text-slate-400">Live draft delivery signal</p>
+                          </div>
+                        </div>
+
+                        <motion.div
+                          className={`rounded-full px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] ${statusTheme.badgeClassName}`}
+                          animate={statusTheme.isLive ? {opacity: [0.72, 1, 0.72], y: [0, -1, 0]} : {opacity: 1, y: 0}}
+                          transition={{duration: 1.8, ease: 'easeInOut', repeat: statusTheme.isLive ? Infinity : 0}}
+                        >
+                          {statusTheme.badge}
+                        </motion.div>
+                      </div>
+
+                      <AnimatePresence mode="wait">
+                        <motion.div
+                          key={`${uploadState.status?.status || 'idle'}-${uploadState.publishId || 'draft'}-${uploadState.progress}`}
+                          animate={{opacity: 1, y: 0}}
+                          exit={{opacity: 0, y: -12}}
+                          initial={{opacity: 0, y: 12}}
+                          transition={{duration: 0.28, ease: 'easeOut'}}
+                        >
+                          <h3 className="mt-6 text-2xl font-black tracking-tight text-white">{statusTheme.title}</h3>
+                          <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300">{statusTheme.description}</p>
+                        </motion.div>
+                      </AnimatePresence>
+
+                      <div className="mt-6 overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Signal Strength</p>
+                          <span className="text-xs font-semibold text-slate-300">{statusTheme.progressLabel}</span>
+                        </div>
+                        <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                          <motion.div
+                            className={`h-full rounded-full bg-gradient-to-r ${statusTheme.progressClassName}`}
+                            animate={{width: `${statusTheme.visualProgress}%`}}
+                            initial={{width: 0}}
+                            transition={{duration: 0.55, ease: 'easeOut'}}
+                          />
+                        </div>
+                        {statusTheme.isLive && (
+                          <motion.div
+                            aria-hidden="true"
+                            className="mt-3 h-px w-28 bg-gradient-to-r from-transparent via-sky-300 to-transparent"
+                            animate={{x: ['-20%', '260%']}}
+                            transition={{duration: 1.8, ease: 'linear', repeat: Infinity}}
+                          />
+                        )}
+                      </div>
+
+                      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                        {statusMilestones.map((milestone, index) => (
+                          <motion.div
+                            key={milestone.label}
+                            animate={{opacity: 1, y: 0}}
+                            initial={{opacity: 0, y: 16}}
+                            transition={{delay: index * 0.06, duration: 0.24, ease: 'easeOut'}}
+                          >
+                            <StatusMilestoneCard milestone={milestone} />
+                          </motion.div>
+                        ))}
+                      </div>
+
+                      <div className="mt-5 space-y-3 text-sm text-slate-300">
+                        {statusRows.map((row, index) => (
+                          <motion.div
+                            key={row.label}
+                            animate={{opacity: 1, x: 0}}
+                            initial={{opacity: 0, x: 12}}
+                            transition={{delay: index * 0.05, duration: 0.24, ease: 'easeOut'}}
+                          >
+                            <StatusRow label={row.label} value={row.value} />
+                          </motion.div>
+                        ))}
+                      </div>
+
+                      {uploadState.status ? (
+                        <button
+                          type="button"
+                          onClick={handleRefreshStatus}
+                          className="mt-5 inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 font-semibold text-white transition-colors hover:bg-white/10"
+                        >
+                          <RefreshCcw size={16} />
+                          Refresh Status
+                        </button>
+                      ) : (
+                        <p className="mt-5 text-sm leading-6 text-slate-400">
+                          Once the upload starts, TikTok processing details and publish status will animate here in real time.
+                        </p>
                       )}
-                      {uploadState.status.fail_reason && (
-                        <StatusRow label="Fail Reason" value={uploadState.status.fail_reason} />
-                      )}
-                      <button
-                        type="button"
-                        onClick={handleRefreshStatus}
-                        className="inline-flex items-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 font-semibold text-white transition-colors hover:bg-white/10"
-                      >
-                        <RefreshCcw size={16} />
-                        Refresh Status
-                      </button>
                     </div>
-                  ) : (
-                    <p className="mt-5 text-sm leading-6 text-slate-400">
-                      Once the upload starts, TikTok processing details and publish status will appear here.
-                    </p>
-                  )}
+                  </div>
                 </section>
 
                 <section className="rounded-[2rem] border border-white/10 bg-white/5 p-6 shadow-2xl shadow-slate-950/30 backdrop-blur-xl">
@@ -439,6 +547,28 @@ function StatusRow({label, value}: {label: string; value: string}) {
   );
 }
 
+function StatusMilestoneCard({milestone}: {milestone: StatusMilestone}) {
+  const classes = getMilestoneClasses(milestone.state);
+
+  return (
+    <div className={`relative overflow-hidden rounded-3xl border px-4 py-4 ${classes.wrapper}`}>
+      {milestone.state === 'active' && (
+        <motion.div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-[-30%] w-20 bg-gradient-to-r from-transparent via-sky-300/30 to-transparent"
+          animate={{x: ['-30%', '220%']}}
+          transition={{duration: 1.9, ease: 'linear', repeat: Infinity}}
+        />
+      )}
+      <div className="relative">
+        <span className={`inline-flex h-2.5 w-2.5 rounded-full ${classes.dot}`} />
+        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">{milestone.label}</p>
+        <p className="mt-2 text-sm font-medium text-slate-100">{milestone.detail}</p>
+      </div>
+    </div>
+  );
+}
+
 function buildStatusMessage(status: TikTokUploadStatus) {
   switch (status.status) {
     case 'SEND_TO_USER_INBOX':
@@ -449,6 +579,245 @@ function buildStatusMessage(status: TikTokUploadStatus) {
       return status.fail_reason || 'TikTok reported that the upload failed.';
     default:
       return 'TikTok is still processing the uploaded draft.';
+  }
+}
+
+function getStatusCardTheme(uploadState: UploadState): StatusCardTheme {
+  const statusCode = uploadState.status?.status;
+
+  if (statusCode === 'SEND_TO_USER_INBOX') {
+    return {
+      Icon: CheckCircle2,
+      badge: 'Ready',
+      badgeClassName: 'bg-emerald-400/15 text-emerald-200',
+      description: 'TikTok finished processing and delivered the draft to the creator inbox for final editing and posting.',
+      glowClassName: 'bg-[radial-gradient(circle_at_top_right,_rgba(52,211,153,0.2),_transparent_55%)]',
+      iconClassName: 'text-emerald-200',
+      iconSurfaceClassName: 'bg-emerald-400/15',
+      isLive: false,
+      progressClassName: 'from-emerald-400 via-cyan-300 to-sky-300',
+      progressLabel: 'Inbox handoff complete',
+      title: 'Draft delivered to the creator inbox',
+      visualProgress: 100,
+    };
+  }
+
+  if (statusCode === 'PUBLISH_COMPLETE') {
+    return {
+      Icon: CheckCircle2,
+      badge: 'Published',
+      badgeClassName: 'bg-emerald-400/15 text-emerald-200',
+      description: 'TikTok reports that the upload completed all the way through publishing successfully.',
+      glowClassName: 'bg-[radial-gradient(circle_at_top_right,_rgba(34,197,94,0.18),_transparent_55%)]',
+      iconClassName: 'text-emerald-200',
+      iconSurfaceClassName: 'bg-emerald-400/15',
+      isLive: false,
+      progressClassName: 'from-emerald-400 via-lime-300 to-cyan-300',
+      progressLabel: 'Publish complete',
+      title: 'TikTok marked the post as published',
+      visualProgress: 100,
+    };
+  }
+
+  if (statusCode === 'FAILED') {
+    return {
+      Icon: AlertTriangle,
+      badge: 'Issue',
+      badgeClassName: 'bg-rose-400/15 text-rose-200',
+      description: uploadState.status?.fail_reason || 'TikTok stopped processing this draft. Refresh the signal or retry with a new upload.',
+      glowClassName: 'bg-[radial-gradient(circle_at_top_right,_rgba(251,113,133,0.18),_transparent_55%)]',
+      iconClassName: 'text-rose-200',
+      iconSurfaceClassName: 'bg-rose-400/15',
+      isLive: false,
+      progressClassName: 'from-rose-400 via-orange-300 to-amber-300',
+      progressLabel: 'Needs review',
+      title: 'TikTok reported an upload issue',
+      visualProgress: 100,
+    };
+  }
+
+  if (uploadState.status) {
+    return {
+      Icon: Clock3,
+      badge: 'Live',
+      badgeClassName: 'bg-sky-400/15 text-sky-100',
+      description: 'TikTok has the draft request and is still processing the video before handing it to the creator inbox.',
+      glowClassName: 'bg-[radial-gradient(circle_at_top_right,_rgba(56,189,248,0.18),_transparent_55%)]',
+      iconClassName: 'text-sky-200',
+      iconSurfaceClassName: 'bg-sky-400/15',
+      isLive: true,
+      progressClassName: 'from-sky-400 via-cyan-300 to-violet-300',
+      progressLabel: 'TikTok processing',
+      title: 'TikTok is actively processing the draft',
+      visualProgress: clampProgress(uploadState.status.progress ?? 82),
+    };
+  }
+
+  if (uploadState.isUploading || uploadState.publishId || uploadState.progress > 0) {
+    return {
+      Icon: Clock3,
+      badge: 'Moving',
+      badgeClassName: 'bg-sky-400/15 text-sky-100',
+      description: 'Fancambo is moving the file into storage and preparing the TikTok import request for the connected account.',
+      glowClassName: 'bg-[radial-gradient(circle_at_top_right,_rgba(14,165,233,0.16),_transparent_55%)]',
+      iconClassName: 'text-sky-200',
+      iconSurfaceClassName: 'bg-sky-400/15',
+      isLive: true,
+      progressClassName: 'from-sky-400 via-cyan-300 to-blue-300',
+      progressLabel: uploadState.progress >= 100 ? 'Import request queued' : `${uploadState.progress}% uploaded`,
+      title: 'Draft pipeline is warming up',
+      visualProgress: clampProgress(Math.max(uploadState.publishId ? 72 : 14, uploadState.progress)),
+    };
+  }
+
+  return {
+    Icon: Clock3,
+    badge: 'Idle',
+    badgeClassName: 'bg-white/10 text-slate-200',
+    description: 'Choose a video and start the upload flow to see the live TikTok processing story appear here.',
+    glowClassName: 'bg-[radial-gradient(circle_at_top_right,_rgba(148,163,184,0.12),_transparent_55%)]',
+    iconClassName: 'text-slate-200',
+    iconSurfaceClassName: 'bg-white/10',
+    isLive: false,
+    progressClassName: 'from-slate-500 via-slate-400 to-slate-300',
+    progressLabel: 'Waiting for activity',
+    title: 'No TikTok activity yet',
+    visualProgress: 8,
+  };
+}
+
+function getStatusMilestones(uploadState: UploadState): StatusMilestone[] {
+  const statusCode = uploadState.status?.status;
+
+  return [
+    {
+      detail:
+        uploadState.uploadedBytes > 0
+          ? `${formatBytes(uploadState.uploadedBytes)} transferred`
+          : 'Waiting for file selection',
+      label: 'Storage Upload',
+      state:
+        uploadState.progress >= 100 || Boolean(uploadState.publishId) || Boolean(uploadState.status)
+          ? 'done'
+          : uploadState.isUploading
+            ? 'active'
+            : 'pending',
+    },
+    {
+      detail: uploadState.publishId ? shortenValue(uploadState.publishId) : 'TikTok publish ID pending',
+      label: 'TikTok Import',
+      state:
+        statusCode === 'FAILED'
+          ? 'error'
+          : uploadState.status
+            ? 'done'
+            : uploadState.publishId || (uploadState.isUploading && uploadState.progress >= 100)
+              ? 'active'
+              : 'pending',
+    },
+    {
+      detail:
+        statusCode === 'SEND_TO_USER_INBOX'
+          ? 'Ready for final edit'
+          : statusCode === 'PUBLISH_COMPLETE'
+            ? 'Published on TikTok'
+            : statusCode === 'FAILED'
+              ? 'Needs another try'
+              : uploadState.status
+                ? 'TikTok is processing'
+                : 'Waiting for TikTok signal',
+      label: 'Creator Inbox',
+      state:
+        statusCode === 'FAILED'
+          ? 'error'
+          : statusCode === 'SEND_TO_USER_INBOX' || statusCode === 'PUBLISH_COMPLETE'
+            ? 'done'
+            : uploadState.status
+              ? 'active'
+              : 'pending',
+    },
+  ];
+}
+
+function getStatusRows(uploadState: UploadState) {
+  const rows = [
+    {
+      label: 'Status',
+      value: prettifyStatus(uploadState.status?.status || (uploadState.publishId ? 'IMPORT_REQUESTED' : uploadState.isUploading ? 'UPLOADING' : 'WAITING')),
+    },
+    {
+      label: 'Uploaded Bytes',
+      value: formatBytes(uploadState.status?.uploaded_bytes || uploadState.uploadedBytes),
+    },
+  ];
+
+  if (uploadState.publishId) {
+    rows.push({
+      label: 'Publish ID',
+      value: uploadState.publishId,
+    });
+  }
+
+  if (uploadState.status?.publicaly_available_post_id) {
+    rows.push({
+      label: 'Public Post ID',
+      value: uploadState.status.publicaly_available_post_id,
+    });
+  }
+
+  if (uploadState.status?.fail_reason) {
+    rows.push({
+      label: 'Fail Reason',
+      value: uploadState.status.fail_reason,
+    });
+  }
+
+  return rows;
+}
+
+function getMilestoneClasses(state: StatusMilestone['state']) {
+  switch (state) {
+    case 'done':
+      return {
+        dot: 'bg-emerald-300 shadow-[0_0_0_6px_rgba(52,211,153,0.14)]',
+        wrapper: 'border-emerald-400/20 bg-emerald-400/8',
+      };
+    case 'active':
+      return {
+        dot: 'bg-sky-300 shadow-[0_0_0_6px_rgba(56,189,248,0.14)]',
+        wrapper: 'border-sky-400/20 bg-sky-400/8',
+      };
+    case 'error':
+      return {
+        dot: 'bg-rose-300 shadow-[0_0_0_6px_rgba(251,113,133,0.14)]',
+        wrapper: 'border-rose-400/20 bg-rose-400/8',
+      };
+    default:
+      return {
+        dot: 'bg-slate-500',
+        wrapper: 'border-white/10 bg-white/5',
+      };
+  }
+}
+
+function prettifyStatus(value: string) {
+  switch (value) {
+    case 'SEND_TO_USER_INBOX':
+      return 'Send to User Inbox';
+    case 'PUBLISH_COMPLETE':
+      return 'Publish Complete';
+    case 'IMPORT_REQUESTED':
+      return 'Import Requested';
+    case 'UPLOADING':
+      return 'Uploading';
+    case 'WAITING':
+      return 'Waiting';
+    default:
+      return value
+        .toLowerCase()
+        .split('_')
+        .map((part) => `${part.slice(0, 1).toUpperCase()}${part.slice(1)}`)
+        .join(' ');
   }
 }
 
@@ -470,4 +839,8 @@ function formatBytes(value: number) {
   const scaledValue = value / 1024 ** unitIndex;
 
   return `${scaledValue.toFixed(scaledValue >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function clampProgress(value: number) {
+  return Math.min(100, Math.max(0, Math.round(value)));
 }
