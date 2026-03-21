@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fancambo Auth Callback</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="relative isolate flex min-h-screen items-center justify-center overflow-hidden px-6 py-16">
+        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.28),_transparent_38%),radial-gradient(circle_at_bottom_right,_rgba(16,185,129,0.2),_transparent_30%),linear-gradient(135deg,_#020617,_#0f172a_55%,_#111827)]"></div>
+        <div class="absolute -left-20 top-16 h-56 w-56 rounded-full bg-cyan-400/20 blur-3xl"></div>
+        <div class="absolute -right-16 bottom-10 h-64 w-64 rounded-full bg-blue-500/20 blur-3xl"></div>
+
+        <main class="relative w-full max-w-xl">
+            <section class="rounded-[2rem] border border-white/10 bg-white/10 p-8 shadow-2xl shadow-slate-950/30 backdrop-blur-xl sm:p-10">
+                <div id="status-pill" class="mb-8 inline-flex items-center gap-3 rounded-full border border-sky-400/30 bg-sky-400/10 px-4 py-2 text-sm font-medium text-sky-200">
+                    <span class="h-2.5 w-2.5 animate-pulse rounded-full bg-sky-300"></span>
+                    Connecting TikTok
+                </div>
+
+                <div class="space-y-4">
+                    <p class="text-sm font-semibold uppercase tracking-[0.24em] text-sky-200/80">Fancambo App</p>
+                    <h1 id="headline" class="text-4xl font-black tracking-tight text-white sm:text-5xl">
+                        Finishing your sign in.
+                    </h1>
+                    <p id="copy" class="max-w-lg text-base leading-7 text-slate-300 sm:text-lg">
+                        Please wait while we validate the TikTok callback and store your session for this browser.
+                    </p>
+                </div>
+
+                <div id="details" class="mt-8 rounded-2xl border border-white/10 bg-slate-950/30 p-5 text-sm leading-6 text-slate-300">
+                    Checking the authorization code and completing the TikTok OAuth flow.
+                </div>
+
+                <div class="mt-10 flex flex-col gap-4 sm:flex-row">
+                    <a
+                        id="back-link"
+                        href="/"
+                        class="inline-flex items-center justify-center rounded-2xl bg-sky-400 px-6 py-3 text-base font-semibold text-slate-950 transition hover:bg-sky-300 focus:outline-none focus:ring-4 focus:ring-sky-300/40"
+                    >
+                        Back to Home
+                    </a>
+                    <button
+                        id="retry-button"
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-4 focus:ring-white/10"
+                    >
+                        Start Again
+                    </button>
+                    <button
+                        type="button"
+                        onclick="window.close()"
+                        class="inline-flex items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-6 py-3 text-base font-semibold text-white transition hover:bg-white/10 focus:outline-none focus:ring-4 focus:ring-white/10"
+                    >
+                        Close Window
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const AUTH_FLOW_STORAGE_KEY = 'fancambo.tiktok.auth_flow';
+        const SESSION_STORAGE_KEY = 'fancambo.tiktok.session';
+
+        const statusPill = document.getElementById('status-pill');
+        const headline = document.getElementById('headline');
+        const copy = document.getElementById('copy');
+        const details = document.getElementById('details');
+        const backLink = document.getElementById('back-link');
+        const retryButton = document.getElementById('retry-button');
+
+        const flow = readJson(AUTH_FLOW_STORAGE_KEY);
+        const homeUrl = flow && flow.homeUrl ? flow.homeUrl : new URL('../../', window.location.href).toString();
+
+        backLink.href = homeUrl;
+        retryButton.addEventListener('click', () => {
+            localStorage.removeItem(AUTH_FLOW_STORAGE_KEY);
+            window.location.assign(homeUrl);
+        });
+
+        finishTikTokCallback();
+
+        async function finishTikTokCallback() {
+            const params = new URLSearchParams(window.location.search);
+            const code = params.get('code');
+            const state = params.get('state');
+            const authError = params.get('error');
+            const authErrorDescription = params.get('error_description');
+
+            if (authError) {
+                renderError('TikTok authorization was cancelled.', authErrorDescription || authError);
+                return;
+            }
+
+            if (!flow) {
+                renderError('TikTok auth details were not found.', 'Start the TikTok login flow again from the Fancambo home page.');
+                return;
+            }
+
+            if (!code) {
+                renderError('TikTok did not return an authorization code.', 'Start the TikTok login flow again and approve the requested permissions.');
+                return;
+            }
+
+            if (state !== flow.state) {
+                renderError('TikTok callback validation failed.', 'The returned state did not match the original request.');
+                return;
+            }
+
+            try {
+                const payload = new URLSearchParams({
+                    client_key: flow.clientKey,
+                    client_secret: flow.clientSecret,
+                    code,
+                    grant_type: 'authorization_code',
+                    redirect_uri: flow.redirectUri,
+                });
+
+                const response = await axios.post('https://open.tiktokapis.com/v2/oauth/token/', payload, {
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                });
+
+                const token = response && response.data ? response.data : null;
+
+                if (!token || !token.access_token) {
+                    throw new Error(token && (token.error_description || token.error) ? token.error_description || token.error : 'TikTok did not return an access token.');
+                }
+
+                const now = Date.now();
+                const session = {
+                    accessToken: token.access_token,
+                    authCode: code,
+                    connectedAt: now,
+                    expiresAt: now + Number(token.expires_in || 0) * 1000,
+                    openId: token.open_id || '',
+                    refreshExpiresAt: token.refresh_expires_in ? now + Number(token.refresh_expires_in) * 1000 : null,
+                    refreshToken: token.refresh_token || null,
+                    scope: String(token.scope || '')
+                        .split(',')
+                        .map((item) => item.trim())
+                        .filter(Boolean),
+                    tokenType: token.token_type || null,
+                };
+
+                localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
+                localStorage.removeItem(AUTH_FLOW_STORAGE_KEY);
+
+                renderSuccess(
+                    'TikTok account connected.',
+                    'Your TikTok authorization is complete. Sending you back to Fancambo now.',
+                    session.scope.length ? `Approved scopes: ${session.scope.join(', ')}` : 'TikTok returned a valid access token.',
+                );
+
+                window.setTimeout(() => {
+                    window.location.assign(homeUrl);
+                }, 1200);
+            } catch (error) {
+                const message = normalizeError(error);
+                renderError('Could not complete TikTok sign in.', message);
+            }
+        }
+
+        function renderSuccess(title, description, detailText) {
+            statusPill.className = 'mb-8 inline-flex items-center gap-3 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-4 py-2 text-sm font-medium text-emerald-200';
+            statusPill.innerHTML = '<span class="h-2.5 w-2.5 rounded-full bg-emerald-300"></span> Authentication Complete';
+            headline.textContent = title;
+            copy.textContent = description;
+            details.textContent = detailText;
+        }
+
+        function renderError(title, detailText) {
+            statusPill.className = 'mb-8 inline-flex items-center gap-3 rounded-full border border-rose-400/30 bg-rose-400/10 px-4 py-2 text-sm font-medium text-rose-200';
+            statusPill.innerHTML = '<span class="h-2.5 w-2.5 rounded-full bg-rose-300"></span> Authentication Failed';
+            headline.textContent = title;
+            copy.textContent = 'The TikTok callback could not be completed for this browser session.';
+            details.textContent = detailText;
+        }
+
+        function normalizeError(error) {
+            if (window.axios && window.axios.isAxiosError && window.axios.isAxiosError(error)) {
+                const responseData = error.response && error.response.data ? error.response.data : null;
+
+                if (responseData && (responseData.error_description || responseData.description)) {
+                    return responseData.error_description || responseData.description;
+                }
+
+                if (responseData && responseData.error) {
+                    return responseData.error;
+                }
+            }
+
+            if (error instanceof Error) {
+                return error.message;
+            }
+
+            return 'Unknown TikTok callback error.';
+        }
+
+        function readJson(storageKey) {
+            const rawValue = localStorage.getItem(storageKey);
+
+            if (!rawValue) {
+                return null;
+            }
+
+            try {
+                return JSON.parse(rawValue);
+            } catch (error) {
+                localStorage.removeItem(storageKey);
+                return null;
+            }
+        }
+    </script>
+</body>
+</html>

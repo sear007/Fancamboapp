@@ -4,8 +4,9 @@
  */
 
 import React, { useState } from 'react';
-import { Shield, Trash2, Mail, ExternalLink, Facebook, Info, CheckCircle2, Music2 } from 'lucide-react';
+import { Shield, Trash2, Mail, ExternalLink, Facebook, Info, CheckCircle2, Music2, Link2, LogOut } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useTikTokAuth } from './context/TikTokAuthContext';
 
 type Permission = {
   name: string;
@@ -15,6 +16,7 @@ type Permission = {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'privacy' | 'deletion'>('home');
+  const { isConfigured, isConnected, logout, missingValues, session, start } = useTikTokAuth();
 
   const metaPermissions: Permission[] = [
     { name: 'pages_read_engagement', desc: 'Allows the app to read content and engagement data from your Facebook Pages.' },
@@ -32,22 +34,9 @@ export default function App() {
       includedIn: 'Login Kit',
     },
     {
-      name: 'video.publish',
-      desc: "Directly post content to a user's TikTok profile.",
-      includedIn: 'Content Posting API',
-    },
-    {
       name: 'video.upload',
       desc: "Share content to a creator's account as a draft to further edit and post in TikTok.",
       includedIn: 'Content Posting API',
-    },
-    {
-      name: 'user.info.profile',
-      desc: 'Read access to profile_web_link, profile_deep_link, bio_description, is_verified.',
-    },
-    {
-      name: 'user.info.stats',
-      desc: "Read access to a user's statistical data, such as likes count, follower count, following count, and video count.",
     },
   ];
 
@@ -99,9 +88,44 @@ export default function App() {
                 Fancambo App (fancambo-app.baxex.com) helps businesses and creators streamline Facebook and TikTok content
                 management, scheduling, publishing, and audience engagement.
               </p>
+              <div className="pt-2 flex flex-col items-center gap-4">
+                <button
+                  type="button"
+                  onClick={start}
+                  disabled={!isConfigured}
+                  className="inline-flex items-center justify-center rounded-2xl bg-blue-600 px-6 py-3 text-base font-bold text-white shadow-sm transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+                >
+                  Start Now
+                </button>
+                {isConnected && session ? (
+                  <div className="inline-flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                    <span className="inline-flex items-center gap-2 font-semibold">
+                      <Link2 size={16} />
+                      TikTok connected
+                    </span>
+                    <span className="text-emerald-600">Open ID: {session.openId || 'Connected'}</span>
+                    <button
+                      type="button"
+                      onClick={logout}
+                      className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-white px-3 py-1.5 font-medium text-emerald-700 transition-colors hover:bg-emerald-100"
+                    >
+                      <LogOut size={14} />
+                      Disconnect
+                    </button>
+                  </div>
+                ) : !isConfigured ? (
+                  <p className="text-sm text-amber-700">
+                    Missing TikTok config: {missingValues.join(', ')}
+                  </p>
+                ) : (
+                  <p className="text-sm text-slate-500">
+                    Start the TikTok authorization flow with <code className="font-mono">user.info.basic</code> and <code className="font-mono">video.upload</code>.
+                  </p>
+                )}
+              </div>
             </section>
 
-            <section className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
+            <section id="platform-permissions" className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
               <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
                 <Info className="text-blue-600" />
                 Platform Permissions
@@ -132,7 +156,7 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="rounded-3xl border border-slate-200 p-6 bg-slate-50/70">
+                <div id="tiktok-permissions" className="rounded-3xl border border-slate-200 p-6 bg-slate-50/70">
                   <div className="flex items-center gap-2 mb-3">
                     <Music2 className="text-slate-900" />
                     <h4 className="text-xl font-bold">TikTok Permissions</h4>
@@ -156,6 +180,21 @@ export default function App() {
                         </div>
                       </div>
                     ))}
+                  </div>
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                      type="button"
+                      onClick={start}
+                      disabled={!isConfigured}
+                      className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+                    >
+                      Start Now
+                    </button>
+                    {isConnected && session && (
+                      <p className="text-sm text-emerald-700">
+                        Connected to TikTok with <code className="font-mono">{session.scope.join(', ')}</code>
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
