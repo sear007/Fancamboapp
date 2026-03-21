@@ -2,6 +2,13 @@ export const TIKTOK_AUTH_FLOW_STORAGE_KEY = 'fancambo.tiktok.auth_flow';
 export const TIKTOK_SESSION_STORAGE_KEY = 'fancambo.tiktok.session';
 export const TIKTOK_SCOPES = ['user.info.basic', 'video.upload'] as const;
 export const TIKTOK_SCOPE_PARAM = TIKTOK_SCOPES.join(',');
+export const TIKTOK_DASHBOARD_HASH = '#/dashboard/upload';
+
+export type TikTokProfile = {
+  avatarUrl: string | null;
+  displayName: string | null;
+  openId: string;
+};
 
 export type TikTokSession = {
   accessToken: string;
@@ -9,6 +16,7 @@ export type TikTokSession = {
   connectedAt: number;
   expiresAt: number;
   openId: string;
+  profile: TikTokProfile | null;
   refreshExpiresAt: number | null;
   refreshToken: string | null;
   scope: string[];
@@ -75,6 +83,12 @@ export function startTikTokAuth() {
 
 export function getHomeUrl() {
   return new URL(import.meta.env.BASE_URL || '/', window.location.origin).toString();
+}
+
+export function getDashboardUrl() {
+  const url = new URL(getHomeUrl());
+  url.hash = TIKTOK_DASHBOARD_HASH;
+  return url.toString();
 }
 
 export function getTikTokCallbackUrl() {

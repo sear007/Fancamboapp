@@ -73,7 +73,9 @@
         const retryButton = document.getElementById('retry-button');
 
         const flow = readJson(AUTH_FLOW_STORAGE_KEY);
-        const homeUrl = flow && flow.homeUrl ? flow.homeUrl : new URL('../../', window.location.href).toString();
+        const homeUrl = flow && flow.homeUrl ? flow.homeUrl : new URL('../', window.location.href).toString();
+        const dashboardUrl = new URL(homeUrl);
+        dashboardUrl.hash = '#/dashboard/upload';
 
         backLink.href = homeUrl;
         retryButton.addEventListener('click', () => {
@@ -125,19 +127,43 @@
                     },
                 });
 
-                const token = response && response.data ? response.data : null;
+                const tokenPayload = response && response.data ? response.data : null;
+                const token = tokenPayload && tokenPayload.data ? tokenPayload.data : tokenPayload;
 
                 if (!token || !token.access_token) {
                     throw new Error(token && (token.error_description || token.error) ? token.error_description || token.error : 'TikTok did not return an access token.');
                 }
 
                 const now = Date.now();
+                let profile = null;
+
+                try {
+                    const profileResponse = await axios.get('https://open.tiktokapis.com/v2/user/info/?fields=open_id,display_name,avatar_url', {
+                        headers: {
+                            Authorization: `Bearer ${token.access_token}`,
+                        },
+                    });
+
+                    profile = profileResponse && profileResponse.data && profileResponse.data.data
+                        ? profileResponse.data.data.user || null
+                        : null;
+                } catch (profileError) {
+                    profile = null;
+                }
+
                 const session = {
                     accessToken: token.access_token,
                     authCode: code,
                     connectedAt: now,
                     expiresAt: now + Number(token.expires_in || 0) * 1000,
                     openId: token.open_id || '',
+                    profile: profile
+                        ? {
+                            avatarUrl: profile.avatar_url || null,
+                            displayName: profile.display_name || null,
+                            openId: profile.open_id || token.open_id || '',
+                        }
+                        : null,
                     refreshExpiresAt: token.refresh_expires_in ? now + Number(token.refresh_expires_in) * 1000 : null,
                     refreshToken: token.refresh_token || null,
                     scope: String(token.scope || '')
@@ -152,12 +178,12 @@
 
                 renderSuccess(
                     'TikTok account connected.',
-                    'Your TikTok authorization is complete. Sending you back to Fancambo now.',
+                    'Your TikTok authorization is complete. Sending you to the dashboard now.',
                     session.scope.length ? `Approved scopes: ${session.scope.join(', ')}` : 'TikTok returned a valid access token.',
                 );
 
                 window.setTimeout(() => {
-                    window.location.assign(homeUrl);
+                    window.location.assign(dashboardUrl.toString());
                 }, 1200);
             } catch (error) {
                 const message = normalizeError(error);

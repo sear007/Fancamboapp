@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { Shield, Trash2, Mail, ExternalLink, Facebook, Info, CheckCircle2, Music2, Link2, LogOut } from 'lucide-react';
 import { motion } from 'motion/react';
+import { TikTokDashboard } from './components/TikTokDashboard';
 import { useTikTokAuth } from './context/TikTokAuthContext';
 
 type Permission = {
@@ -17,6 +18,10 @@ type Permission = {
 export default function App() {
   const [activeTab, setActiveTab] = useState<'home' | 'privacy' | 'deletion'>('home');
   const { isConfigured, isConnected, logout, missingValues, session, start } = useTikTokAuth();
+
+  if (isConnected && session) {
+    return <TikTokDashboard onLogout={logout} session={session} />;
+  }
 
   const metaPermissions: Permission[] = [
     { name: 'pages_read_engagement', desc: 'Allows the app to read content and engagement data from your Facebook Pages.' },
