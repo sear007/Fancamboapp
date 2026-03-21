@@ -80,6 +80,7 @@
     <script>
         const AUTH_FLOW_STORAGE_KEY = 'fancambo.tiktok.auth_flow';
         const SESSION_STORAGE_KEY = 'fancambo.tiktok.session';
+        const DEFAULT_WORKER_BASE_URL = 'https://fancambo-worker.koungbuntha.workers.dev';
 
         const statusPill = document.getElementById('status-pill');
         const headline = document.getElementById('headline');
@@ -92,6 +93,7 @@
         const retryButton = document.getElementById('retry-button');
 
         const flow = readJson(AUTH_FLOW_STORAGE_KEY);
+        const workerApiBaseUrl = flow && flow.workerApiBaseUrl ? flow.workerApiBaseUrl : getDefaultWorkerBaseUrl();
         const homeUrl = flow && flow.homeUrl ? flow.homeUrl : new URL('../', window.location.href).toString();
         const dashboardUrl = new URL(homeUrl);
         dashboardUrl.hash = '#/dashboard/upload';
@@ -129,7 +131,7 @@
                 return;
             }
 
-            if (!flow.workerApiBaseUrl) {
+            if (!workerApiBaseUrl) {
                 renderError('Cloudflare Worker URL is missing.', 'Start the TikTok login flow again after refreshing the latest frontend configuration.');
                 return;
             }
@@ -145,7 +147,7 @@
             }
 
             try {
-                const response = await axios.post(buildWorkerApiUrl(flow.workerApiBaseUrl, '/api/tiktok/oauth/exchange'), {
+                const response = await axios.post(buildWorkerApiUrl(workerApiBaseUrl, '/api/tiktok/oauth/exchange'), {
                     code,
                     redirectUri: flow.redirectUri,
                 }, {
@@ -259,6 +261,14 @@
             const normalizedBaseUrl = String(baseUrl || '').replace(/\/+$/, '');
             const normalizedPath = String(path || '').replace(/^\/+/, '');
             return new URL(normalizedPath, normalizedBaseUrl + '/').toString();
+        }
+
+        function getDefaultWorkerBaseUrl() {
+            if (window.location.origin === 'https://sear007.github.io') {
+                return DEFAULT_WORKER_BASE_URL;
+            }
+
+            return '';
         }
 
         function readJson(storageKey) {

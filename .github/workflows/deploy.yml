@@ -33,7 +33,7 @@ jobs:
         env:
           VITE_BASE_PATH: /${{ github.event.repository.name }}/
           VITE_TIKTOK_CLIENT_KEY: ${{ secrets.VITE_TIKTOK_CLIENT_KEY }}
-          VITE_CLOUDFLARE_WORKER_URL: ${{ vars.VITE_CLOUDFLARE_WORKER_URL }}
+          VITE_CLOUDFLARE_WORKER_URL: ${{ secrets.VITE_CLOUDFLARE_WORKER_URL || vars.VITE_CLOUDFLARE_WORKER_URL || 'https://fancambo-worker.koungbuntha.workers.dev' }}
         run: npm run build
 
       - name: Upload artifact
