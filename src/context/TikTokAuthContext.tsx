@@ -1,7 +1,7 @@
 import React, {createContext, useContext, useEffect, useMemo, useState} from 'react';
 
 import {
-  clearTikTokSession,
+  clearTikTokStoredData,
   getTikTokConfig,
   readTikTokSession,
   startTikTokAuth,
@@ -43,7 +43,8 @@ export function TikTokAuthProvider({children}: {children: React.ReactNode}) {
       session,
       start: () => startTikTokAuth(),
       logout: () => {
-        clearTikTokSession();
+        clearTikTokStoredData();
+        window.history.replaceState(null, '', import.meta.env.BASE_URL || '/');
         setSession(null);
       },
     }),
@@ -71,7 +72,7 @@ function readActiveSession() {
   }
 
   if (session.expiresAt <= Date.now()) {
-    clearTikTokSession();
+    clearTikTokStoredData();
     return null;
   }
 

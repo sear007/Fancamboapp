@@ -3,6 +3,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
   Clock3,
+  AlertTriangle,
   LogOut,
   RefreshCcw,
   Upload,
@@ -45,6 +46,7 @@ const initialUploadState: UploadState = {
 };
 
 export function TikTokDashboard({onLogout, session}: TikTokDashboardProps) {
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadState, setUploadState] = useState<UploadState>(initialUploadState);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -158,6 +160,19 @@ export function TikTokDashboard({onLogout, session}: TikTokDashboardProps) {
     }
   };
 
+  const openLogoutDialog = () => {
+    setIsLogoutDialogOpen(true);
+  };
+
+  const closeLogoutDialog = () => {
+    setIsLogoutDialogOpen(false);
+  };
+
+  const handleConfirmLogout = () => {
+    setIsLogoutDialogOpen(false);
+    onLogout();
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="mx-auto flex min-h-screen max-w-7xl flex-col lg:flex-row">
@@ -203,7 +218,7 @@ export function TikTokDashboard({onLogout, session}: TikTokDashboardProps) {
 
           <button
             type="button"
-            onClick={onLogout}
+            onClick={openLogoutDialog}
             className="mt-8 inline-flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm font-semibold text-slate-200 transition-colors hover:bg-slate-800"
           >
             <LogOut size={16} />
@@ -363,6 +378,49 @@ export function TikTokDashboard({onLogout, session}: TikTokDashboardProps) {
           </div>
         </main>
       </div>
+
+      {isLogoutDialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 px-6 py-10 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-[2rem] border border-white/10 bg-slate-900 p-7 shadow-2xl shadow-slate-950/60">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-rose-400/10 text-rose-300">
+                <AlertTriangle size={24} />
+              </div>
+              <div className="space-y-3">
+                <p className="text-sm font-semibold uppercase tracking-[0.22em] text-rose-200/90">Log Out</p>
+                <h2 className="text-2xl font-black tracking-tight text-white">Delete saved TikTok session from this browser?</h2>
+                <p className="text-sm leading-7 text-slate-300">
+                  If you log out now, Fancambo will delete the saved TikTok token, profile session, and local auth data from this device.
+                </p>
+                <p className="text-sm leading-7 text-slate-400">
+                  You can always come back later and connect TikTok again when you are ready to upload more content.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 rounded-3xl border border-slate-800 bg-slate-950/60 p-4 text-sm leading-6 text-slate-300">
+              This action clears local data stored for the current browser session, including the access token used for TikTok uploads.
+            </div>
+
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={closeLogoutDialog}
+                className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+              >
+                Come back later
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmLogout}
+                className="inline-flex items-center justify-center rounded-2xl bg-rose-500 px-5 py-3 text-sm font-bold text-white transition-colors hover:bg-rose-400"
+              >
+                Delete Data and Log Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

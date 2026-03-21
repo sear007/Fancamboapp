@@ -107,6 +107,11 @@ export function clearTikTokSession() {
   localStorage.removeItem(TIKTOK_SESSION_STORAGE_KEY);
 }
 
+export function clearTikTokStoredData() {
+  clearTikTokSession();
+  clearAuthFlow();
+}
+
 export function persistAuthFlow(flow: TikTokAuthFlow) {
   localStorage.setItem(TIKTOK_AUTH_FLOW_STORAGE_KEY, JSON.stringify(flow));
 }

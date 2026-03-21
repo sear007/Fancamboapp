@@ -34,7 +34,23 @@
                     Checking the authorization code and completing the TikTok OAuth flow.
                 </div>
 
+                <div
+                    id="countdown-panel"
+                    class="mt-4 hidden rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5 text-sm leading-6 text-emerald-100"
+                >
+                    Redirecting to the dashboard in
+                    <span id="countdown-value" class="font-bold text-white">15</span>
+                    seconds.
+                </div>
+
                 <div class="mt-10 flex flex-col gap-4 sm:flex-row">
+                    <a
+                        id="dashboard-link"
+                        href="/"
+                        class="hidden inline-flex items-center justify-center rounded-2xl bg-emerald-400 px-6 py-3 text-base font-semibold text-slate-950 transition hover:bg-emerald-300 focus:outline-none focus:ring-4 focus:ring-emerald-300/40"
+                    >
+                        Go to Dashboard
+                    </a>
                     <a
                         id="back-link"
                         href="/"
@@ -69,6 +85,9 @@
         const headline = document.getElementById('headline');
         const copy = document.getElementById('copy');
         const details = document.getElementById('details');
+        const countdownPanel = document.getElementById('countdown-panel');
+        const countdownValue = document.getElementById('countdown-value');
+        const dashboardLink = document.getElementById('dashboard-link');
         const backLink = document.getElementById('back-link');
         const retryButton = document.getElementById('retry-button');
 
@@ -76,9 +95,17 @@
         const homeUrl = flow && flow.homeUrl ? flow.homeUrl : new URL('../', window.location.href).toString();
         const dashboardUrl = new URL(homeUrl);
         dashboardUrl.hash = '#/dashboard/upload';
+        let redirectCountdownId = null;
+        let redirectTimeoutId = null;
 
+        dashboardLink.href = dashboardUrl.toString();
         backLink.href = homeUrl;
+        dashboardLink.addEventListener('click', (event) => {
+            clearRedirectTimers();
+            window.location.assign(dashboardUrl.toString());
+        });
         retryButton.addEventListener('click', () => {
+            clearRedirectTimers();
             localStorage.removeItem(AUTH_FLOW_STORAGE_KEY);
             window.location.assign(homeUrl);
         });
@@ -178,13 +205,10 @@
 
                 renderSuccess(
                     'TikTok account connected.',
-                    'Your TikTok authorization is complete. Sending you to the dashboard now.',
+                    'Your TikTok authorization is complete. You can open the dashboard now or wait for the automatic redirect.',
                     session.scope.length ? `Approved scopes: ${session.scope.join(', ')}` : 'TikTok returned a valid access token.',
                 );
-
-                window.setTimeout(() => {
-                    window.location.assign(dashboardUrl.toString());
-                }, 1200);
+                startRedirectCountdown(15);
             } catch (error) {
                 const message = normalizeError(error);
                 renderError('Could not complete TikTok sign in.', message);
@@ -197,14 +221,54 @@
             headline.textContent = title;
             copy.textContent = description;
             details.textContent = detailText;
+            countdownPanel.classList.remove('hidden');
+            dashboardLink.classList.remove('hidden');
         }
 
         function renderError(title, detailText) {
+            clearRedirectTimers();
             statusPill.className = 'mb-8 inline-flex items-center gap-3 rounded-full border border-rose-400/30 bg-rose-400/10 px-4 py-2 text-sm font-medium text-rose-200';
             statusPill.innerHTML = '<span class="h-2.5 w-2.5 rounded-full bg-rose-300"></span> Authentication Failed';
             headline.textContent = title;
             copy.textContent = 'The TikTok callback could not be completed for this browser session.';
             details.textContent = detailText;
+            countdownPanel.classList.add('hidden');
+            dashboardLink.classList.add('hidden');
+        }
+
+        function startRedirectCountdown(seconds) {
+            clearRedirectTimers();
+            let remainingSeconds = seconds;
+            countdownValue.textContent = String(remainingSeconds);
+
+            redirectCountdownId = window.setInterval(() => {
+                remainingSeconds -= 1;
+
+                if (remainingSeconds <= 0) {
+                    clearRedirectTimers();
+                    window.location.assign(dashboardUrl.toString());
+                    return;
+                }
+
+                countdownValue.textContent = String(remainingSeconds);
+            }, 1000);
+
+            redirectTimeoutId = window.setTimeout(() => {
+                clearRedirectTimers();
+                window.location.assign(dashboardUrl.toString());
+            }, seconds * 1000);
+        }
+
+        function clearRedirectTimers() {
+            if (redirectCountdownId) {
+                window.clearInterval(redirectCountdownId);
+                redirectCountdownId = null;
+            }
+
+            if (redirectTimeoutId) {
+                window.clearTimeout(redirectTimeoutId);
+                redirectTimeoutId = null;
+            }
         }
 
         function normalizeError(error) {
