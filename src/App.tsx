@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   ArrowRight,
   BarChart3,
   CalendarDays,
   CheckCircle2,
-  ExternalLink,
   Facebook,
+  FileText,
   Info,
   LayoutDashboard,
   Mail,
@@ -25,7 +25,32 @@ import {motion} from 'motion/react';
 import {TikTokDashboard} from './components/TikTokDashboard';
 import {useTikTokAuth} from './context/TikTokAuthContext';
 
-type ActiveTab = 'home' | 'privacy' | 'deletion';
+type ActiveTab = 'home' | 'privacy' | 'terms' | 'deletion';
+
+const TAB_HASHES: Record<ActiveTab, string> = {
+  home: '#home',
+  privacy: '#privacy-policy',
+  terms: '#terms-of-service',
+  deletion: '#data-deletion',
+};
+
+function getActiveTabFromHash(hash: string): ActiveTab {
+  const normalizedHash = hash.replace(/^#/, '').trim().toLowerCase();
+
+  if (normalizedHash === 'privacy' || normalizedHash === 'privacy-policy') {
+    return 'privacy';
+  }
+
+  if (normalizedHash === 'terms' || normalizedHash === 'terms-of-service') {
+    return 'terms';
+  }
+
+  if (normalizedHash === 'deletion' || normalizedHash === 'data-deletion') {
+    return 'deletion';
+  }
+
+  return 'home';
+}
 
 type Permission = {
   name: string;
@@ -48,8 +73,26 @@ type WorkflowStep = {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('home');
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() =>
+    typeof window === 'undefined' ? 'home' : getActiveTabFromHash(window.location.hash),
+  );
   const {isConfigured, isConnected, logout, missingValues, session, start} = useTikTokAuth();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const syncActiveTab = () => {
+      setActiveTab(getActiveTabFromHash(window.location.hash));
+      window.scrollTo({behavior: 'smooth', top: 0});
+    };
+
+    syncActiveTab();
+    window.addEventListener('hashchange', syncActiveTab);
+
+    return () => window.removeEventListener('hashchange', syncActiveTab);
+  }, []);
 
   if (isConnected && session) {
     return <TikTokDashboard onLogout={logout} session={session} />;
@@ -131,9 +174,10 @@ export default function App() {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <NavItem activeTab={activeTab} icon={Info} id="home" label="Home" onSelect={setActiveTab} />
-            <NavItem activeTab={activeTab} icon={Shield} id="privacy" label="Privacy" onSelect={setActiveTab} />
-            <NavItem activeTab={activeTab} icon={Trash2} id="deletion" label="Data Deletion" onSelect={setActiveTab} />
+            <NavItem activeTab={activeTab} href={TAB_HASHES.home} icon={Info} id="home" label="Home" />
+            <NavItem activeTab={activeTab} href={TAB_HASHES.terms} icon={FileText} id="terms" label="Terms" />
+            <NavItem activeTab={activeTab} href={TAB_HASHES.privacy} icon={Shield} id="privacy" label="Privacy" />
+            <NavItem activeTab={activeTab} href={TAB_HASHES.deletion} icon={Trash2} id="deletion" label="Data Deletion" />
           </div>
         </div>
       </nav>
@@ -141,6 +185,7 @@ export default function App() {
       <main className={`mx-auto px-6 py-12 ${activeTab === 'home' ? 'max-w-6xl' : 'max-w-4xl'}`}>
         {activeTab === 'home' && (
           <motion.div
+            id="home"
             animate={{opacity: 1, y: 0}}
             className="space-y-16"
             initial={{opacity: 0, y: 20}}
@@ -175,12 +220,13 @@ export default function App() {
                       Start Now
                       <ArrowRight size={18} />
                     </button>
-                    <a
-                      href="#platform-permissions"
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById('platform-permissions')?.scrollIntoView({behavior: 'smooth'})}
                       className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-6 py-3 text-base font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                     >
                       View Permissions
-                    </a>
+                    </button>
                   </div>
 
                   {!isConfigured ? (
@@ -339,11 +385,41 @@ export default function App() {
                 </PlatformCard>
               </div>
             </section>
+
+            <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm sm:p-10">
+              <SectionIntro
+                eyebrow="Legal"
+                title="Terms of Service and policy pages are linked directly from the homepage."
+                description="Review the legal pages TikTok requests before connecting an account. Each link opens a dedicated section with its own shareable URL."
+              />
+
+              <div className="mt-8 grid gap-5 md:grid-cols-3">
+                <LegalLinkCard
+                  description="Read the rules that govern use of Fancambo App, account responsibilities, and platform integrations."
+                  href={TAB_HASHES.terms}
+                  icon={FileText}
+                  title="Terms of Service"
+                />
+                <LegalLinkCard
+                  description="See what data we collect, how we use it, and how we protect information connected through TikTok and Facebook."
+                  href={TAB_HASHES.privacy}
+                  icon={Shield}
+                  title="Privacy Policy"
+                />
+                <LegalLinkCard
+                  description="Follow the steps for removing app activity or requesting manual deletion of account-related data."
+                  href={TAB_HASHES.deletion}
+                  icon={Trash2}
+                  title="Data Deletion"
+                />
+              </div>
+            </section>
           </motion.div>
         )}
 
         {activeTab === 'privacy' && (
           <motion.div
+            id="privacy-policy"
             animate={{opacity: 1, y: 0}}
             className="space-y-8 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm sm:p-12"
             initial={{opacity: 0, y: 20}}
@@ -395,8 +471,86 @@ export default function App() {
           </motion.div>
         )}
 
+        {activeTab === 'terms' && (
+          <motion.div
+            id="terms-of-service"
+            animate={{opacity: 1, y: 0}}
+            className="space-y-8 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm sm:p-12"
+            initial={{opacity: 0, y: 20}}
+          >
+            <div className="flex items-center gap-3 border-b border-slate-100 pb-6">
+              <FileText className="text-slate-900" size={32} />
+              <h2 className="text-3xl font-bold">Terms of Service</h2>
+            </div>
+
+            <div className="prose prose-slate max-w-none space-y-6 text-slate-700">
+              <p className="text-sm italic text-slate-500">Last Updated: April 1, 2026</p>
+
+              <section>
+                <h3 className="mb-2 text-xl font-bold text-slate-900">1. Acceptance of Terms</h3>
+                <p>
+                  By accessing or using Fancambo App, you agree to these Terms of Service. If you do not agree, do not use
+                  the service.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="mb-2 text-xl font-bold text-slate-900">2. Service Description</h3>
+                <p>
+                  Fancambo App provides a workflow for connecting approved social platform accounts, managing permissions,
+                  and uploading videos to TikTok as drafts for further creator review and publishing.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="mb-2 text-xl font-bold text-slate-900">3. Account and Platform Responsibilities</h3>
+                <p>
+                  You are responsible for maintaining the security of your connected accounts and for ensuring you have the
+                  right to upload, manage, and share any content submitted through the service.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="mb-2 text-xl font-bold text-slate-900">4. Content and Acceptable Use</h3>
+                <p>You agree not to use Fancambo App to upload or distribute content that:</p>
+                <ul className="mt-2 list-disc space-y-2 pl-6">
+                  <li>Violates the terms, policies, or community guidelines of TikTok, Facebook, or any connected platform.</li>
+                  <li>Infringes intellectual property, privacy, publicity, or other legal rights.</li>
+                  <li>Contains malicious code, attempts unauthorized access, or disrupts the service.</li>
+                </ul>
+              </section>
+
+              <section>
+                <h3 className="mb-2 text-xl font-bold text-slate-900">5. Availability and Changes</h3>
+                <p>
+                  We may update, suspend, or discontinue parts of the service at any time to improve functionality, maintain
+                  security, or comply with platform requirements and applicable law.
+                </p>
+              </section>
+
+              <section>
+                <h3 className="mb-2 text-xl font-bold text-slate-900">6. Limitation of Liability</h3>
+                <p>
+                  Fancambo App is provided on an &quot;as is&quot; and &quot;as available&quot; basis. To the maximum extent allowed by law,
+                  we are not liable for indirect, incidental, special, or consequential damages arising from your use of the
+                  service.
+                </p>
+              </section>
+
+              <section className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+                <h3 className="mb-2 text-lg font-bold text-slate-900">Contact Us</h3>
+                <p className="flex items-center gap-2 text-slate-700">
+                  <Mail size={18} />
+                  support@fancambo-app.baxex.com
+                </p>
+              </section>
+            </div>
+          </motion.div>
+        )}
+
         {activeTab === 'deletion' && (
           <motion.div
+            id="data-deletion"
             animate={{opacity: 1, y: 0}}
             className="space-y-8 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm sm:p-12"
             initial={{opacity: 0, y: 20}}
@@ -456,11 +610,9 @@ export default function App() {
             <p className="text-sm text-slate-500">© 2026 Fancambo. All rights reserved.</p>
           </div>
           <div className="flex gap-6 text-sm font-medium text-slate-600">
-            <button className="hover:text-blue-600" onClick={() => setActiveTab('privacy')}>Privacy Policy</button>
-            <button className="hover:text-blue-600" onClick={() => setActiveTab('deletion')}>Data Deletion</button>
-            <a className="flex items-center gap-1 hover:text-blue-600" href="#">
-              Terms of Service <ExternalLink size={14} />
-            </a>
+            <a className="hover:text-blue-600" href={TAB_HASHES.terms}>Terms of Service</a>
+            <a className="hover:text-blue-600" href={TAB_HASHES.privacy}>Privacy Policy</a>
+            <a className="hover:text-blue-600" href={TAB_HASHES.deletion}>Data Deletion</a>
           </div>
         </div>
       </footer>
@@ -470,27 +622,28 @@ export default function App() {
 
 function NavItem({
   activeTab,
+  href,
   icon: Icon,
   id,
   label,
-  onSelect,
 }: {
   activeTab: ActiveTab;
+  href: string;
   icon: LucideIcon;
   id: ActiveTab;
   label: string;
-  onSelect: (tab: ActiveTab) => void;
 }) {
   return (
-    <button
+    <a
+      aria-current={activeTab === id ? 'page' : undefined}
       className={`flex items-center gap-2 rounded-full px-4 py-2 transition-all duration-200 ${
         activeTab === id ? 'bg-slate-950 text-white shadow-md' : 'text-slate-600 hover:bg-slate-100'
       }`}
-      onClick={() => onSelect(id)}
+      href={href}
     >
       <Icon size={18} />
       <span className="font-medium">{label}</span>
-    </button>
+    </a>
   );
 }
 
@@ -592,6 +745,35 @@ function PermissionCard({
         )}
       </div>
     </div>
+  );
+}
+
+function LegalLinkCard({
+  description,
+  href,
+  icon: Icon,
+  title,
+}: {
+  description: string;
+  href: string;
+  icon: LucideIcon;
+  title: string;
+}) {
+  return (
+    <a
+      className="group rounded-[2rem] border border-slate-200 bg-slate-50 p-6 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white"
+      href={href}
+    >
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-slate-900 shadow-sm">
+        <Icon size={22} />
+      </div>
+      <h3 className="mt-5 text-xl font-bold text-slate-950">{title}</h3>
+      <p className="mt-3 text-sm leading-7 text-slate-600">{description}</p>
+      <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-sky-700">
+        Open page
+        <ArrowRight className="transition-transform duration-200 group-hover:translate-x-1" size={16} />
+      </div>
+    </a>
   );
 }
 
