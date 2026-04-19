@@ -50,12 +50,16 @@ export default {
         return handleMultipartComplete(request, env);
       }
 
-      if (request.method === 'POST' && url.pathname === '/api/tiktok/upload/init') {
-        return handleTikTokUploadInit(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/tiktok/post/creator-info') {
+        return handleTikTokCreatorInfo(request, env);
       }
 
-      if (request.method === 'POST' && url.pathname === '/api/tiktok/upload/status') {
-        return handleTikTokUploadStatus(request, env);
+      if (request.method === 'POST' && url.pathname === '/api/tiktok/post/init') {
+        return handleTikTokPostInit(request, env);
+      }
+
+      if (request.method === 'POST' && (url.pathname === '/api/tiktok/post/status' || url.pathname === '/api/tiktok/upload/status')) {
+        return handleTikTokPostStatus(request, env);
       }
 
       if (request.method === 'GET' && url.pathname.startsWith('/media/')) {
@@ -289,30 +293,116 @@ async function handleMultipartComplete(request, env) {
   });
 }
 
-async function handleTikTokUploadInit(request, env) {
+async function handleTikTokCreatorInfo(request, env) {
   const body = await readJson(request);
   const accessToken = typeof body.accessToken === 'string' ? body.accessToken.trim() : '';
-  const videoUrl = typeof body.videoUrl === 'string' ? body.videoUrl.trim() : '';
 
-  if (!accessToken || !videoUrl) {
+  if (!accessToken) {
     return jsonResponse(
       request,
       env,
       {
         error: 'invalid_request',
-        message: '"accessToken" and "videoUrl" are required.',
+        message: '"accessToken" is required.',
       },
       {status: 400},
     );
   }
 
-  const response = await fetch('https://open.tiktokapis.com/v2/post/publish/inbox/video/init/', {
+  const response = await fetch('https://open.tiktokapis.com/v2/post/publish/creator_info/query/', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json; charset=UTF-8',
+    },
+  });
+
+  const json = await response.json();
+  const error = json?.error;
+
+  if (!response.ok || (error?.code && error.code !== 'ok')) {
+    return jsonResponse(
+      request,
+      env,
+      {
+        error: error?.code || 'tiktok_creator_info_failed',
+        message: error?.message || 'TikTok did not return creator information.',
+        details: json,
+      },
+      {status: response.status || 502},
+    );
+  }
+
+  return jsonResponse(request, env, {
+    commentDisabled: Boolean(json?.data?.comment_disabled),
+    creatorAvatarUrl: typeof json?.data?.creator_avatar_url === 'string' ? json.data.creator_avatar_url : null,
+    creatorNickname: typeof json?.data?.creator_nickname === 'string' ? json.data.creator_nickname : null,
+    creatorUsername: typeof json?.data?.creator_username === 'string' ? json.data.creator_username : null,
+    duetDisabled: Boolean(json?.data?.duet_disabled),
+    maxVideoPostDurationSec: Number.isFinite(Number(json?.data?.max_video_post_duration_sec))
+      ? Number(json.data.max_video_post_duration_sec)
+      : null,
+    privacyLevelOptions: Array.isArray(json?.data?.privacy_level_options)
+      ? json.data.privacy_level_options.filter((value) => typeof value === 'string')
+      : [],
+    stitchDisabled: Boolean(json?.data?.stitch_disabled),
+  });
+}
+
+async function handleTikTokPostInit(request, env) {
+  const body = await readJson(request);
+  const accessToken = typeof body.accessToken === 'string' ? body.accessToken.trim() : '';
+  const videoUrl = typeof body.videoUrl === 'string' ? body.videoUrl.trim() : '';
+  const privacyLevel = typeof body.privacyLevel === 'string' ? body.privacyLevel.trim() : '';
+  const title = typeof body.title === 'string' ? body.title : '';
+  const allowComment = Boolean(body.allowComment);
+  const allowDuet = Boolean(body.allowDuet);
+  const allowStitch = Boolean(body.allowStitch);
+  const discloseBrandContent = Boolean(body.discloseBrandContent);
+  const discloseBrandOrganic = Boolean(body.discloseBrandOrganic);
+  const isAigc = Boolean(body.isAigc);
+
+  if (!accessToken || !videoUrl || !privacyLevel) {
+    return jsonResponse(
+      request,
+      env,
+      {
+        error: 'invalid_request',
+        message: '"accessToken", "videoUrl", and "privacyLevel" are required.',
+      },
+      {status: 400},
+    );
+  }
+
+  if (title.length > 2200) {
+    return jsonResponse(
+      request,
+      env,
+      {
+        error: 'invalid_request',
+        message: 'TikTok captions must be 2200 characters or fewer.',
+      },
+      {status: 400},
+    );
+  }
+
+  const response = await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${accessToken}`,
       'Content-Type': 'application/json; charset=UTF-8',
     },
     body: JSON.stringify({
+      post_info: {
+        brand_content_toggle: discloseBrandContent,
+        brand_organic_toggle: discloseBrandOrganic,
+        disable_comment: !allowComment,
+        disable_duet: !allowDuet,
+        disable_stitch: !allowStitch,
+        is_aigc: isAigc,
+        privacy_level: privacyLevel,
+        ...(title.trim() ? {title} : {}),
+      },
       source_info: {
         source: 'PULL_FROM_URL',
         video_url: videoUrl,
@@ -328,8 +418,8 @@ async function handleTikTokUploadInit(request, env) {
       request,
       env,
       {
-        error: error?.code || 'tiktok_upload_init_failed',
-        message: error?.message || 'TikTok did not accept the PULL_FROM_URL upload request.',
+        error: error?.code || 'tiktok_post_init_failed',
+        message: error?.message || 'TikTok did not accept the direct post request.',
         details: json,
       },
       {status: response.status || 502},
@@ -341,7 +431,7 @@ async function handleTikTokUploadInit(request, env) {
   });
 }
 
-async function handleTikTokUploadStatus(request, env) {
+async function handleTikTokPostStatus(request, env) {
   const body = await readJson(request);
   const accessToken = typeof body.accessToken === 'string' ? body.accessToken.trim() : '';
   const publishId = typeof body.publishId === 'string' ? body.publishId.trim() : '';
@@ -377,8 +467,8 @@ async function handleTikTokUploadStatus(request, env) {
       request,
       env,
       {
-        error: error?.code || 'tiktok_upload_status_failed',
-        message: error?.message || 'TikTok did not return upload status.',
+        error: error?.code || 'tiktok_post_status_failed',
+        message: error?.message || 'TikTok did not return post status.',
         details: json,
       },
       {status: response.status || 502},

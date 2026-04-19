@@ -96,7 +96,7 @@
         const workerApiBaseUrl = flow && flow.workerApiBaseUrl ? flow.workerApiBaseUrl : getDefaultWorkerBaseUrl();
         const homeUrl = flow && flow.homeUrl ? flow.homeUrl : new URL('../', window.location.href).toString();
         const dashboardUrl = new URL(homeUrl);
-        dashboardUrl.hash = '#/dashboard/upload';
+        dashboardUrl.hash = '#/dashboard/direct-post';
         let redirectCountdownId = null;
         let redirectTimeoutId = null;
 

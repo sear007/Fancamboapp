@@ -114,8 +114,8 @@ export default function App() {
       includedIn: 'Login Kit',
     },
     {
-      name: 'video.upload',
-      desc: "Share content to a creator's account as a draft to further edit and post in TikTok.",
+      name: 'video.publish',
+      desc: "Post content directly to a creator's TikTok account with caption, visibility, interaction, and disclosure settings.",
       includedIn: 'Content Posting API',
     },
   ];
@@ -129,9 +129,9 @@ export default function App() {
     },
     {
       icon: CalendarDays,
-      title: 'Draft-first publishing flow',
+      title: 'Direct publishing flow',
       description:
-        'Send prepared videos to TikTok as drafts so creators can review, edit, and publish with the final native polish they need.',
+        'Send prepared videos directly to TikTok with caption, visibility, and interaction settings chosen inside Fancambo.',
     },
     {
       icon: BarChart3,
@@ -145,17 +145,17 @@ export default function App() {
     {
       step: '01',
       title: 'Connect TikTok',
-      description: 'Start the TikTok authorization flow with the exact scopes required for basic identity and video draft upload.',
+      description: 'Start the TikTok authorization flow with the exact scopes required for basic identity and direct post publishing.',
     },
     {
       step: '02',
-      title: 'Upload prepared content',
-      description: 'Move your video into TikTok through Fancambo without leaving the dashboard or juggling extra tools.',
+      title: 'Review post settings',
+      description: 'Choose the TikTok visibility, interactions, and required disclosures returned for the connected creator account.',
     },
     {
       step: '03',
-      title: 'Hand off for final post',
-      description: 'TikTok sends the uploaded draft to the creator inbox so the post can be finalized and published natively.',
+      title: 'Publish directly',
+      description: 'Send the prepared video straight to TikTok from Fancambo and watch the post status update in real time.',
     },
   ];
 
@@ -205,7 +205,7 @@ export default function App() {
                       </h1>
                       <p className="max-w-2xl text-lg leading-8 text-slate-600">
                         Fancambo App helps businesses and creators connect TikTok, organize publishing access, and move from
-                        prepared content to creator-ready draft uploads from one focused workspace.
+                        prepared content to creator-ready direct posts from one focused workspace.
                       </p>
                     </div>
                   </div>
@@ -235,13 +235,13 @@ export default function App() {
                     </div>
                   ) : (
                     <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium">TikTok scopes: `user.info.basic` + `video.upload`</span>
-                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium">Draft upload dashboard included</span>
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium">TikTok scopes: `user.info.basic` + `video.publish`</span>
+                      <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 font-medium">Direct post dashboard included</span>
                     </div>
                   )}
 
                   <div className="grid gap-3 sm:grid-cols-3">
-                    <MetricCard label="Focus" value="TikTok draft uploads" />
+                    <MetricCard label="Focus" value="TikTok direct posting" />
                     <MetricCard label="Workflow" value="Single dashboard" />
                     <MetricCard label="Access" value="Permission-ready setup" />
                   </div>
@@ -268,20 +268,20 @@ export default function App() {
                         </div>
                       </div>
                       <p className="mt-3 text-sm leading-6 text-slate-300">
-                        Start auth, capture the account session, and move directly into the upload workflow.
+                        Start auth, capture the account session, and move directly into the direct post workflow.
                       </p>
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
-                      <PreviewTile title="Upload Drafts" value="Chunked TikTok upload flow" />
-                      <PreviewTile title="Track Status" value="Processing and handoff states" />
+                      <PreviewTile title="Direct Post" value="Chunked upload with creator settings" />
+                      <PreviewTile title="Track Status" value="Download, processing, and publish states" />
                     </div>
 
                     <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
                       <div className="flex items-center justify-between gap-4">
                         <div>
                           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-400">Publishing Flow</p>
-                          <p className="mt-2 text-lg font-bold text-white">Creator inbox delivery</p>
+                          <p className="mt-2 text-lg font-bold text-white">Direct TikTok publishing</p>
                         </div>
                         <CheckCircle2 className="text-emerald-300" size={22} />
                       </div>
@@ -289,7 +289,7 @@ export default function App() {
                         <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-sky-400 to-cyan-300" />
                       </div>
                       <p className="mt-3 text-sm leading-6 text-slate-300">
-                        Upload the file, let TikTok process it, then hand it back for final native editing and posting.
+                        Upload the file, choose the latest TikTok settings, and let the direct post run to completion.
                       </p>
                     </div>
                   </div>
@@ -314,7 +314,7 @@ export default function App() {
             <section className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm sm:p-10">
               <SectionIntro
                 eyebrow="How It Works"
-                title="From connect to creator inbox in three clear steps."
+                title="From connect to publish in three clear steps."
                 description="The product flow is intentionally simple so creators and teams can move quickly without getting lost in setup."
               />
 
@@ -352,7 +352,7 @@ export default function App() {
                 </PlatformCard>
 
                 <PlatformCard
-                  description="These permissions support TikTok account connection and draft video uploads to the creator inbox workflow."
+                  description="These permissions support TikTok account connection and direct video posting from the Fancambo workflow."
                   icon={Music2}
                   iconClassName="text-slate-900"
                   title="TikTok Permissions"
@@ -368,7 +368,7 @@ export default function App() {
                       <div>
                         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-700">Ready To Connect</p>
                         <p className="mt-2 text-base leading-7 text-sky-950">
-                          Start the TikTok flow and move directly into the upload dashboard after a successful login.
+                          Start the TikTok flow and move directly into the direct post dashboard after a successful login.
                         </p>
                       </div>
                       <button
@@ -430,7 +430,7 @@ export default function App() {
             </div>
 
             <div className="prose prose-slate max-w-none space-y-6 text-slate-700">
-              <p className="text-sm italic text-slate-500">Last Updated: March 21, 2026</p>
+              <p className="text-sm italic text-slate-500">Last Updated: April 19, 2026</p>
 
               <section>
                 <h3 className="mb-2 text-xl font-bold text-slate-900">1. Information We Collect</h3>
@@ -447,7 +447,7 @@ export default function App() {
                 <ul className="mt-2 list-disc space-y-2 pl-6">
                   <li>Display a list of Facebook Pages and connected TikTok profile details.</li>
                   <li>Schedule and publish posts to your Facebook Pages and TikTok profile.</li>
-                  <li>Save TikTok uploads as drafts for further editing and posting.</li>
+                  <li>Publish TikTok videos directly with the selected caption, visibility, interaction settings, and disclosures.</li>
                   <li>Analyze engagement metrics and account statistics to provide insights.</li>
                 </ul>
               </section>
@@ -484,7 +484,7 @@ export default function App() {
             </div>
 
             <div className="prose prose-slate max-w-none space-y-6 text-slate-700">
-              <p className="text-sm italic text-slate-500">Last Updated: April 1, 2026</p>
+              <p className="text-sm italic text-slate-500">Last Updated: April 19, 2026</p>
 
               <section>
                 <h3 className="mb-2 text-xl font-bold text-slate-900">1. Acceptance of Terms</h3>
@@ -498,7 +498,7 @@ export default function App() {
                 <h3 className="mb-2 text-xl font-bold text-slate-900">2. Service Description</h3>
                 <p>
                   Fancambo App provides a workflow for connecting approved social platform accounts, managing permissions,
-                  and uploading videos to TikTok as drafts for further creator review and publishing.
+                  and publishing videos directly to TikTok with creator-selected visibility, interaction, and disclosure settings.
                 </p>
               </section>
 

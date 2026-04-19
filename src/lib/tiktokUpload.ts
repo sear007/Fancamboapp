@@ -21,8 +21,47 @@ type MultipartCompleteResponse = {
   objectKey: string;
 };
 
+type WorkerTikTokCreatorInfoResponse = {
+  commentDisabled: boolean;
+  creatorAvatarUrl: string | null;
+  creatorNickname: string | null;
+  creatorUsername: string | null;
+  duetDisabled: boolean;
+  maxVideoPostDurationSec: number | null;
+  privacyLevelOptions: TikTokPrivacyLevel[];
+  stitchDisabled: boolean;
+};
+
 type WorkerTikTokInitResponse = {
   publishId: string | null;
+};
+
+export type TikTokPrivacyLevel =
+  | 'FOLLOWER_OF_CREATOR'
+  | 'MUTUAL_FOLLOW_FRIENDS'
+  | 'PUBLIC_TO_EVERYONE'
+  | 'SELF_ONLY';
+
+export type TikTokCreatorInfo = {
+  commentDisabled: boolean;
+  creatorAvatarUrl: string | null;
+  creatorNickname: string | null;
+  creatorUsername: string | null;
+  duetDisabled: boolean;
+  maxVideoPostDurationSec: number | null;
+  privacyLevelOptions: TikTokPrivacyLevel[];
+  stitchDisabled: boolean;
+};
+
+export type TikTokPostSettings = {
+  allowComment: boolean;
+  allowDuet: boolean;
+  allowStitch: boolean;
+  discloseBrandContent: boolean;
+  discloseBrandOrganic: boolean;
+  isAigc: boolean;
+  privacyLevel: TikTokPrivacyLevel;
+  title: string;
 };
 
 export type TikTokChunk = {
@@ -39,11 +78,12 @@ export type TikTokChunkPlan = {
 };
 
 export type TikTokUploadStatus = {
+  downloaded_bytes?: number;
   fail_reason?: string;
   post_id?: string;
   progress?: number;
   publish_id?: string;
-  publicaly_available_post_id?: string;
+  publicaly_available_post_id?: Array<number | string>;
   status?: string;
   uploaded_bytes?: number;
 };
@@ -145,48 +185,72 @@ export async function uploadVideoToStorage(
   }
 }
 
-export async function initializeTikTokUpload(accessToken: string, videoUrl: string) {
+export async function fetchTikTokCreatorInfo(accessToken: string) {
   try {
-    const response = await axios.post<WorkerTikTokInitResponse>(getWorkerApiUrl('/api/tiktok/upload/init'), {
+    const response = await axios.post<WorkerTikTokCreatorInfoResponse>(getWorkerApiUrl('/api/tiktok/post/creator-info'), {
       accessToken,
+    });
+
+    return response.data;
+  } catch (error) {
+    throw new Error(resolveAxiosMessage(error, 'Could not load TikTok creator settings.'));
+  }
+}
+
+export async function initializeTikTokDirectPost(
+  accessToken: string,
+  videoUrl: string,
+  settings: TikTokPostSettings,
+) {
+  try {
+    const response = await axios.post<WorkerTikTokInitResponse>(getWorkerApiUrl('/api/tiktok/post/init'), {
+      accessToken,
+      allowComment: settings.allowComment,
+      allowDuet: settings.allowDuet,
+      allowStitch: settings.allowStitch,
+      discloseBrandContent: settings.discloseBrandContent,
+      discloseBrandOrganic: settings.discloseBrandOrganic,
+      isAigc: settings.isAigc,
+      privacyLevel: settings.privacyLevel,
+      title: settings.title,
       videoUrl,
     });
 
     if (!response.data.publishId) {
-      throw new Error('TikTok did not return a publish ID for the draft import.');
+      throw new Error('TikTok did not return a publish ID for the direct post request.');
     }
 
     return {
       publishId: response.data.publishId,
     };
   } catch (error) {
-    throw new Error(resolveAxiosMessage(error, 'TikTok draft import failed.'));
+    throw new Error(resolveAxiosMessage(error, 'TikTok direct post request failed.'));
   }
 }
 
-export async function fetchTikTokUploadStatus(accessToken: string, publishId: string) {
+export async function fetchTikTokPostStatus(accessToken: string, publishId: string) {
   try {
-    const response = await axios.post<TikTokUploadStatus>(getWorkerApiUrl('/api/tiktok/upload/status'), {
+    const response = await axios.post<TikTokUploadStatus>(getWorkerApiUrl('/api/tiktok/post/status'), {
       accessToken,
       publishId,
     });
 
     return response.data || {};
   } catch (error) {
-    throw new Error(resolveAxiosMessage(error, 'Could not load TikTok upload status.'));
+    throw new Error(resolveAxiosMessage(error, 'Could not load TikTok post status.'));
   }
 }
 
-export async function pollTikTokUploadStatus(
+export async function pollTikTokPostStatus(
   accessToken: string,
   publishId: string,
   onStatus?: (status: TikTokUploadStatus) => void,
 ) {
-  const terminalStatuses = new Set(['FAILED', 'PUBLISH_COMPLETE', 'SEND_TO_USER_INBOX']);
+  const terminalStatuses = new Set(['FAILED', 'PUBLISH_COMPLETE']);
   let latestStatus: TikTokUploadStatus = {};
 
   for (let attempt = 0; attempt < 12; attempt += 1) {
-    latestStatus = await fetchTikTokUploadStatus(accessToken, publishId);
+    latestStatus = await fetchTikTokPostStatus(accessToken, publishId);
     onStatus?.(latestStatus);
 
     if (latestStatus.status && terminalStatuses.has(latestStatus.status)) {

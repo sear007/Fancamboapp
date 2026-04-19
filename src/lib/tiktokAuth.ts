@@ -2,9 +2,9 @@ import {getWorkerBaseUrl} from './cloudflareWorker';
 
 export const TIKTOK_AUTH_FLOW_STORAGE_KEY = 'fancambo.tiktok.auth_flow';
 export const TIKTOK_SESSION_STORAGE_KEY = 'fancambo.tiktok.session';
-export const TIKTOK_SCOPES = ['user.info.basic', 'video.upload'] as const;
+export const TIKTOK_SCOPES = ['user.info.basic', 'video.publish'] as const;
 export const TIKTOK_SCOPE_PARAM = TIKTOK_SCOPES.join(',');
-export const TIKTOK_DASHBOARD_HASH = '#/dashboard/upload';
+export const TIKTOK_DASHBOARD_HASH = '#/dashboard/direct-post';
 
 export type TikTokProfile = {
   avatarUrl: string | null;
